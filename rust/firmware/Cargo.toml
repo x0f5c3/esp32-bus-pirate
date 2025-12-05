@@ -1,0 +1,31 @@
+[package]
+name = "esp32-bus-pirate-firmware"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+esp-hal.workspace = true
+esp-backtrace.workspace = true
+esp-println.workspace = true
+esp-alloc.workspace = true
+
+embedded-hal.workspace = true
+embedded-graphics.workspace = true
+heapless.workspace = true
+log.workspace = true
+static_cell.workspace = true
+
+# Internal crates
+esp32-bus-pirate-hal = { path = "../hal" }
+esp32-bus-pirate-drivers = { path = "../drivers" }
+esp32-bus-pirate-protocol = { path = "../protocol" }
+esp32-bus-pirate-bus-modes = { path = "../bus-modes" }
+
+[features]
+default = []
+
+[[bin]]
+name = "esp32-bus-pirate"
+path = "src/main.rs"

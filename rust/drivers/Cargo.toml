@@ -1,0 +1,18 @@
+[package]
+name = "esp32-bus-pirate-drivers"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+embedded-hal.workspace = true
+embedded-graphics.workspace = true
+st7789.workspace = true
+display-interface.workspace = true
+display-interface-spi.workspace = true
+heapless.workspace = true
+log.workspace = true
+
+[features]
+default = []
