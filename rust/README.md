@@ -177,9 +177,17 @@ See `hal/src/pins.rs` for complete pin definitions.
 
 ## Documentation
 
-For detailed design and architecture, see:
+For detailed design and architecture, see the **mdbook documentation**:
+- [Full Documentation](../book/book/index.html) - Complete user and developer guide
+- [Rust Migration Guide](../book/src/development/rust-migration.md)
+- [Design Document](../book/src/development/design.md)
+- [Protocol Specification](../book/src/development/protocol.md)
+- [Slint GUI Framework](../book/src/development/slint.md)
+- [Conventional Commits](../book/src/development/conventional-commits.md)
+
+Or view the original docs:
 - [Design Document](../docs/rust-migration-design.md)
-- [Protocol Specification](../docs/protocol.md) (TBD)
+- [Protocol Specification](../docs/protocol.md)
 
 ## Contributing
 
