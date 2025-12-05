@@ -1,0 +1,21 @@
+[book]
+title = "ESP32 Bus Pirate Documentation"
+authors = ["ESP32 Bus Pirate Contributors"]
+language = "en"
+src = "src"
+
+[rust]
+edition = "2021"
+
+[build]
+build-dir = "book"
+create-missing = true
+
+[preprocessor.mermaid]
+command = "mdbook-mermaid"
+
+[output.html]
+mathjax-support = true
+git-repository-url = "https://github.com/x0f5c3/esp32-bus-pirate"
+edit-url-template = "https://github.com/x0f5c3/esp32-bus-pirate/edit/main/book/{path}"
+additional-js = ["mermaid.min.js", "mermaid-init.js"]

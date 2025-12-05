@@ -1,0 +1,134 @@
+//! Message encoding and decoding with CRC validation
+
+use crate::{message::Message, Error, END_BYTE, MAX_MESSAGE_SIZE, START_BYTE};
+use crc::{Crc, CRC_16_IBM_SDLC};
+use heapless::Vec;
+use postcard::{from_bytes, to_vec};
+
+const CRC: Crc<u16> = Crc::<u16>::new(&CRC_16_IBM_SDLC);
+
+/// Message codec for encoding and decoding protocol messages
+pub struct MessageCodec;
+
+impl MessageCodec {
+    /// Encode a message into a framed byte stream
+    ///
+    /// Frame format:
+    /// ```text
+    /// ┌─────────┬─────────┬─────────┬──────────┬─────────┬─────────┐
+    /// │ START   │ VERSION │ LENGTH  │ PAYLOAD  │ CRC16   │  END    │
+    /// │ (0xAA)  │ (1 byte)│ (2 bytes│ (n bytes)│ (2 bytes│ (0x55)  │
+    /// └─────────┴─────────┴─────────┴──────────┴─────────┴─────────┘
+    /// ```
+    pub fn encode(msg: &Message) -> Result<Vec<u8, MAX_MESSAGE_SIZE>, Error> {
+        // Serialize message with postcard
+        let payload: Vec<u8, MAX_MESSAGE_SIZE> =
+            to_vec(msg).map_err(|_| Error::EncodingFailed)?;
+        
+        let len = payload.len() as u16;
+        
+        // Build frame
+        let mut frame = Vec::new();
+        frame.push(START_BYTE).map_err(|_| Error::BufferFull)?;
+        frame
+            .push(crate::version::PROTOCOL_VERSION)
+            .map_err(|_| Error::BufferFull)?;
+        frame
+            .extend_from_slice(&len.to_le_bytes())
+            .map_err(|_| Error::BufferFull)?;
+        frame
+            .extend_from_slice(&payload)
+            .map_err(|_| Error::BufferFull)?;
+        
+        // Calculate CRC over VERSION + LENGTH + PAYLOAD
+        let crc_data = &frame[1..];
+        let crc_value = CRC.checksum(crc_data);
+        
+        frame
+            .extend_from_slice(&crc_value.to_le_bytes())
+            .map_err(|_| Error::BufferFull)?;
+        frame.push(END_BYTE).map_err(|_| Error::BufferFull)?;
+        
+        Ok(frame)
+    }
+    
+    /// Decode a framed byte stream into a message
+    pub fn decode(frame: &[u8]) -> Result<Message, Error> {
+        // Minimum frame: START + VERSION + LEN(2) + CRC(2) + END = 7 bytes
+        if frame.len() < 7 {
+            return Err(Error::FrameTooShort);
+        }
+        
+        // Check frame markers
+        if frame[0] != START_BYTE || frame[frame.len() - 1] != END_BYTE {
+            return Err(Error::InvalidFrame);
+        }
+        
+        // Check version
+        let version = frame[1];
+        if version != crate::version::PROTOCOL_VERSION {
+            return Err(Error::UnsupportedVersion);
+        }
+        
+        // Extract length
+        let len = u16::from_le_bytes([frame[2], frame[3]]) as usize;
+        let payload_end = 4 + len;
+        
+        if frame.len() < payload_end + 3 {
+            return Err(Error::FrameTooShort);
+        }
+        
+        // Extract payload and CRC
+        let payload = &frame[4..payload_end];
+        let crc_received = u16::from_le_bytes([frame[payload_end], frame[payload_end + 1]]);
+        
+        // Verify CRC
+        let crc_data = &frame[1..payload_end];
+        let crc_calculated = CRC.checksum(crc_data);
+        
+        if crc_received != crc_calculated {
+            return Err(Error::CrcMismatch);
+        }
+        
+        // Deserialize payload
+        from_bytes(payload).map_err(|_| Error::DecodingFailed)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::message::{Mode, Response};
+    
+    #[test]
+    fn test_encode_decode_roundtrip() {
+        let msg = Message::SetMode { mode: Mode::I2c };
+        let encoded = MessageCodec::encode(&msg).unwrap();
+        let decoded = MessageCodec::decode(&encoded).unwrap();
+        assert_eq!(msg, decoded);
+    }
+    
+    #[test]
+    fn test_crc_validation() {
+        let msg = Message::GetMode;
+        let mut frame = MessageCodec::encode(&msg).unwrap();
+        
+        // Corrupt the CRC
+        let len = frame.len();
+        frame[len - 3] ^= 0xFF;
+        
+        assert!(matches!(
+            MessageCodec::decode(&frame),
+            Err(Error::CrcMismatch)
+        ));
+    }
+    
+    #[test]
+    fn test_frame_markers() {
+        let msg = Message::Response(Response::Success);
+        let frame = MessageCodec::encode(&msg).unwrap();
+        
+        assert_eq!(frame[0], START_BYTE);
+        assert_eq!(frame[frame.len() - 1], END_BYTE);
+    }
+}

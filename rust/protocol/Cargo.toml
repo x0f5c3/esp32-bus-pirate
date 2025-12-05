@@ -1,0 +1,15 @@
+[package]
+name = "esp32-bus-pirate-protocol"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+postcard.workspace = true
+heapless.workspace = true
+crc.workspace = true
+
+[features]
+default = []

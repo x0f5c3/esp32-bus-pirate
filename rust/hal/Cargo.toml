@@ -1,0 +1,19 @@
+[package]
+name = "esp32-bus-pirate-hal"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+esp-hal.workspace = true
+embedded-hal.workspace = true
+embedded-hal-async.workspace = true
+heapless.workspace = true
+log.workspace = true
+bitflags.workspace = true
+fugit.workspace = true
+
+[features]
+default = []
+async = ["embedded-hal-async"]
