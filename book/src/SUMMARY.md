@@ -29,10 +29,10 @@
 
 # Work In Progress
 
-The following sections are planned but not yet implemented. They will be added as development progresses:
+## The following sections are planned but not yet implemented. They will be added as development progresses:
 
-- User Guide (touch interface, CLI, mobile app, data logging)
-- Bus Modes (I²C, SPI, UART, 1-Wire, and 16 more protocols)
-- Mobile Application (Flutter/Tauri apps)
-- Reference (pins, messages, commands, hardware specs)
-- Troubleshooting and FAQ
+### User Guide (touch interface, CLI, mobile app, data logging)
+### Bus Modes (I²C, SPI, UART, 1-Wire, and 16 more protocols)
+### Mobile Application (Flutter/Tauri apps)
+### Reference (pins, messages, commands, hardware specs)
+### Troubleshooting and FAQ
