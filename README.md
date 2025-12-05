@@ -1,11 +1,28 @@
 # ESP32 Bus Pirate
 
-![Logo banner of the ESP32 Bus Pirate firmware](images/logo_protocols_banner_small.png)
+[![CI](https://github.com/x0f5c3/esp32-bus-pirate/workflows/CI%20-%20Build%20and%20Test/badge.svg)](https://github.com/x0f5c3/esp32-bus-pirate/actions/workflows/ci.yml)
+[![Deploy Docs](https://github.com/x0f5c3/esp32-bus-pirate/workflows/Deploy%20mdBook%20to%20GitHub%20Pages/badge.svg)](https://github.com/x0f5c3/esp32-bus-pirate/actions/workflows/deploy-docs.yml)
+[![License](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](LICENSE)
 
+![Logo banner of the ESP32 Bus Pirate firmware](images/logo_protocols_banner_small.png)
 
 **ESP32 Bus Pirate** is an open-source firmware that turns your device into a multi-protocol hacker's tool, inspired by the [legendary Bus Pirate](https://buspirate.com/).
 
 It supports sniffing, sending, scripting, and interacting with various digital protocols (I2C, UART, 1-Wire, SPI, etc.) via a serial terminal or web-based CLI. It also communicates with radio protocols like Bluetooth, Wi-Fi, Sub-GHz and RFID.
+
+## 📚 Documentation
+
+**New!** Comprehensive documentation is now available:
+- **[Read the Docs](https://x0f5c3.github.io/esp32-bus-pirate/)** - Complete guide with Rust migration plans
+- **[Quick Start Guide](https://x0f5c3.github.io/esp32-bus-pirate/getting-started/quick-start.html)** - Get up and running in 10 minutes
+- **[Hardware Setup](https://x0f5c3.github.io/esp32-bus-pirate/hardware/waveshare-s3.html)** - Waveshare ESP32-S3-Touch-LCD-2.8 details
+- **[Contributing](https://x0f5c3.github.io/esp32-bus-pirate/development/contributing.html)** - Help improve the project
+
+## 🚀 Rust Migration
+
+This project is undergoing a comprehensive migration from C/ESP-IDF to Rust (`no_std`) for the Waveshare ESP32-S3-Touch-LCD-2.8 board. See the [Rust Migration Guide](https://x0f5c3.github.io/esp32-bus-pirate/development/rust-migration.html) for details.
+
+---
 
 Use the [ESP32 Bus Pirate Web Flasher](https://geo-tp.github.io/ESP32-Bus-Pirate/webflasher/) to install the firmware in one click. See the [Wiki](https://github.com/geo-tp/ESP32-Bus-Pirate/wiki) for step-by-step guides on every mode and command. Check [ESP32 Bus Pirate Scripts](https://github.com/geo-tp/ESP32-Bus-Pirate-Scripts) for a collection of scripts.
 
