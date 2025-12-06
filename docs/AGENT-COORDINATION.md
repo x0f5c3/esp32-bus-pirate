@@ -4,7 +4,7 @@ This document provides specific task assignments for coordinating multiple agent
 
 ## Overview
 
-The migration is divided into **6 phases** with **10 specialized agents** working in parallel where dependencies allow. Total estimated time: **12-14 weeks** with proper parallelization.
+The migration is divided into **6 phases** with **7-10 agents** (7 agent roles, some roles can run multiple instances) working in parallel where dependencies allow. Total estimated time: **12-14 weeks** with proper parallelization.
 
 ---
 
