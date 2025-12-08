@@ -137,6 +137,8 @@ jobs:
             docs
             ci
           requireScope: false
+          ignoreLabels: skip-semantic
+          validateSingleCommit: false
 
   build-rust:
     name: Build Rust Firmware
