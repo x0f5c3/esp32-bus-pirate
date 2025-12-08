@@ -21,10 +21,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install Rust toolchain (nightly-2024-11-01)
+      - name: Install Rust stable toolchain
         uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: nightly-2024-11-01
+          toolchain: stable
+          components: rust-src
+
+      - name: Install Rust nightly toolchain (latest)
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: nightly
           components: rust-src
 
       - name: Install espup
