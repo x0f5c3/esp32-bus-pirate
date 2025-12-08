@@ -8,7 +8,7 @@ license.workspace = true
 [dependencies]
 esp-hal.workspace = true
 embedded-hal.workspace = true
-embedded-hal-async.workspace = true
+embedded-hal-async  = { workspace = true, optional = true }
 heapless.workspace = true
 log.workspace = true
 bitflags.workspace = true
