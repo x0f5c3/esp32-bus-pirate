@@ -204,6 +204,31 @@ source ~/export-esp.sh
 cargo build --release
 ```
 
+## Examples
+
+Several examples are provided to demonstrate HAL usage:
+
+### Basic Example
+
+Demonstrates board initialization, backlight control, and I2C scanning:
+
+```bash
+cargo run --example basic --release
+```
+
+### I2C Scanner
+
+Continuously scans and reports I2C devices:
+
+```bash
+cargo run --example i2c_scan --release
+```
+
+Run any example with:
+```bash
+cargo run --example <example_name> --release
+```
+
 ## Testing
 
 Unit tests are included but most require hardware to validate:
