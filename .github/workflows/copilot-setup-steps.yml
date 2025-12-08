@@ -15,6 +15,7 @@ jobs:
     permissions:
       contents: read
     env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       MDBOOK_VERSION: 0.4.40
       MDBOOK_MERMAID_VERSION: 0.14.0
     steps:
@@ -33,17 +34,16 @@ jobs:
           toolchain: nightly
           components: rust-src
 
-      - name: Install espup
-        run: cargo install espup
-
-      - name: Install Xtensa toolchain for ESP32-S3
-        run: |
-          espup install -l info --targets esp32s3 --export-file "$GITHUB_WORKSPACE/export-esp.sh"
+      - name: Install Xtensa toolchain via esp-rs action
+        uses: esp-rs/xtensa-toolchain@v1.5
+        with:
+          default: true
+          ldproxy: true
+          version: "latest"
+          targets: esp32s3
 
       - name: Validate Xtensa toolchain
-        run: |
-          source "$GITHUB_WORKSPACE/export-esp.sh"
-          xtensa-esp32s3-elf-gcc --version
+        run: xtensa-esp32s3-elf-gcc --version
 
       - name: Install embedded utilities (espflash, ldproxy)
         run: cargo install espflash ldproxy
