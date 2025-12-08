@@ -76,9 +76,9 @@ impl<'d> PwmChannel<'d> {
     /// # Arguments
     ///
     /// * `ledc` - The LEDC peripheral
+    /// * `timer` - The LEDC timer to use for this channel
     /// * `pin` - The GPIO pin to use for PWM output
     /// * `config` - PWM configuration
-    /// * `clocks` - System clocks
     pub fn new<P: esp_hal::gpio::OutputPin>(
         ledc: &'d mut Ledc<'d>,
         timer: &'d timer::Timer<'d, LowSpeed, 0>,
