@@ -1,0 +1,48 @@
+name: Copilot Setup Steps
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
+  pull_request:
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
+
+jobs:
+  copilot-setup-steps:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain (nightly-2024-11-01)
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          toolchain: nightly-2024-11-01
+          components: rust-src
+
+      - name: Install espup
+        run: cargo install espup
+
+      - name: Install Xtensa toolchain for ESP32-S3
+        run: |
+          espup install -l debug --targets esp32s3 --export-file "$HOME/export-esp.sh"
+          echo "source $HOME/export-esp.sh" >> "$GITHUB_ENV"
+
+      - name: Install embedded utilities (espflash, ldproxy)
+        run: cargo install espflash ldproxy
+
+      - name: Install PlatformIO CLI
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install platformio
+
+      - name: Install mdBook toolchain
+        run: |
+          mkdir -p "$HOME/bin"
+          curl -sSL https://github.com/rust-lang/mdBook/releases/download/v0.4.40/mdbook-v0.4.40-x86_64-unknown-linux-gnu.tar.gz | tar -xz -C "$HOME/bin"
+          curl -sSL https://github.com/badboy/mdbook-mermaid/releases/download/v0.14.0/mdbook-mermaid-v0.14.0-x86_64-unknown-linux-gnu.tar.gz | tar -xz -C "$HOME/bin"
+          echo "$HOME/bin" >> "$GITHUB_PATH"
