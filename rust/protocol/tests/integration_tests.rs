@@ -3,7 +3,7 @@
 //! These tests verify complete request/response cycles and error recovery scenarios.
 
 use esp32_bus_pirate_protocol::{
-    codec::MessageCodec, message::*, Error, ErrorCode, Mode, Response,
+    codec::MessageCodec, message::*, ErrorCode, Mode, Response,
 };
 use heapless::{String, Vec};
 

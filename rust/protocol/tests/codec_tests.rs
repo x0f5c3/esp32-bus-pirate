@@ -604,3 +604,26 @@ fn test_large_response_data() {
     let decoded = MessageCodec::decode(&encoded).unwrap();
     assert_eq!(msg, decoded);
 }
+
+// ===== Python Client Compatibility Tests =====
+
+#[test]
+fn test_getmode_encoding_matches_python() {
+    use std::string::String as StdString;
+    
+    let msg = Message::GetMode;
+    let encoded = MessageCodec::encode(&msg).unwrap();
+    
+    // Print for verification with Python
+    let hex_string = encoded.iter()
+        .map(|b| format!("{:02x}", b))
+        .collect::<StdString>();
+    
+    println!("Rust GetMode encoding: {}", hex_string);
+    println!("Python GetMode encoding: aa0101000130ab55");
+    
+    // Verify the encoding matches Python client
+    let expected_hex = "aa0101000130ab55";
+    assert_eq!(hex_string, expected_hex, 
+        "Rust and Python encodings must match for interoperability");
+}
