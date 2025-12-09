@@ -25,16 +25,14 @@
 //! ```
 
 use esp_hal::{
-    clock::ClockControl,
-    gpio::{Io, Level, Output, Input},
-    i2c::I2C,
+    delay::Delay,
+    gpio::{Level, Output, OutputConfig},
+    i2c::master::{Config as I2cConfig, I2c},
     peripherals::Peripherals,
-    prelude::*,
-    spi::{master::Spi, FullDuplexMode, SpiMode},
-    system::SystemControl,
-    timer::timg::TimerGroup,
-    Delay,
+    spi::master::{Config as SpiConfig, Spi},
+    Blocking,
 };
+use esp_hal::time::Rate;
 
 use crate::peripherals::{
     i2c::{I2cBus, I2cConfig},
@@ -49,9 +47,8 @@ use crate::pins;
 pub struct WaveshareS3Board {
     /// Delay provider for precise timing
     pub delay: Delay,
-    
-    /// SPI2 bus for display @ 40MHz
-    pub display_spi: Spi<'static, esp_hal::peripherals::SPI2, FullDuplexMode>,
+    /// SPI bus for display (and possibly SD card)
+    pub display_spi: Spi<'static, Blocking>,
     
     /// Display control pins
     pub display_dc: Output<'static>,   // Data/Command select
@@ -59,8 +56,8 @@ pub struct WaveshareS3Board {
     pub display_rst: Output<'static>,  // Reset (active low)
     pub display_bl: Output<'static>,   // Backlight control
     
-    /// I2C0 bus for touch controller, IMU, and RTC @ 100kHz
-    pub i2c0: I2C<'static, esp_hal::peripherals::I2C0>,
+    /// I2C bus for touch, IMU, and RTC
+    pub i2c0: I2c<'static, Blocking>,
     
     /// Touch controller pins
     pub touch_int: Input<'static>,     // Interrupt pin (active low)
@@ -95,49 +92,43 @@ impl WaveshareS3Board {
     /// let board = WaveshareS3Board::new();
     /// ```
     pub fn new() -> Self {
-        let peripherals = Peripherals::take();
-        let system = SystemControl::new(peripherals.SYSTEM);
-        
-        // Configure clocks to run at maximum speed (240 MHz)
-        let clocks = ClockControl::max(system.clock_control).freeze();
-        
-        // Initialize GPIO
-        let io = Io::new(peripherals.GPIO, peripherals.IO_MUX);
+        // Initialize with default configuration
+        let peripherals = esp_hal::init(esp_hal::Config::default());
         
         // Create delay provider
-        let delay = Delay::new(&clocks);
+        let delay = Delay::new();
         
-        // ===== Display SPI2 Setup @ 40MHz =====
-        let sclk = io.pins.gpio40;
-        let mosi = io.pins.gpio45;
-        let miso = io.pins.gpio48; // Not used for display, but required by SPI
-        let cs = Output::new(io.pins.gpio42, Level::High);
+        // ===== Display SPI Setup =====
+        let sclk = peripherals.GPIO40;
+        let mosi = peripherals.GPIO45;
+        let miso = peripherals.GPIO48; // Not used for display, but SPI needs it
+        let display_cs = Output::new(peripherals.GPIO42, Level::High, OutputConfig::default());
         
-        let display_spi = Spi::new(peripherals.SPI2, 40.MHz(), SpiMode::Mode0, &clocks)
+        let spi_config = SpiConfig::default().with_frequency(Rate::from_mhz(40));
+        let display_spi = Spi::new(peripherals.SPI2, spi_config)
+            .expect("SPI initialization failed")
             .with_sck(sclk)
             .with_mosi(mosi)
             .with_miso(miso);
         
         // Display control pins
-        let display_dc = Output::new(io.pins.gpio41, Level::Low);
-        let display_rst = Output::new(io.pins.gpio39, Level::High);
-        let display_bl = Output::new(io.pins.gpio5, Level::High); // Backlight on by default
+        let display_dc = Output::new(peripherals.GPIO41, Level::Low, OutputConfig::default());
+        let display_rst = Output::new(peripherals.GPIO39, Level::High, OutputConfig::default());
+        let display_bl = Output::new(peripherals.GPIO5, Level::High, OutputConfig::default()); // Backlight on
         
-        // ===== I2C0 Setup for Touch/IMU/RTC @ 100kHz =====
-        let sda = io.pins.gpio1;
-        let scl = io.pins.gpio3;
+        // ===== I2C Setup for Touch/IMU/RTC =====
+        let sda = peripherals.GPIO1;
+        let scl = peripherals.GPIO3;
         
-        let i2c0 = I2C::new(
-            peripherals.I2C0,
-            sda,
-            scl,
-            100.kHz(), // 100 kHz for touch controller compatibility
-            &clocks,
-        );
+        let i2c_config = I2cConfig::default().with_frequency(Rate::from_khz(100));
+        let i2c0 = I2c::new(peripherals.I2C0, i2c_config)
+            .expect("I2C initialization failed")
+            .with_sda(sda)
+            .with_scl(scl);
         
         // Touch controller pins
-        let touch_int = Input::new(io.pins.gpio4, esp_hal::gpio::Pull::Up);
-        let touch_rst = Output::new(io.pins.gpio2, Level::High);
+        let touch_int = Output::new(peripherals.GPIO4, Level::High, OutputConfig::default());
+        let touch_rst = Output::new(peripherals.GPIO2, Level::High, OutputConfig::default());
         
         // ===== SD Card SPI3 Setup @ 20MHz =====
         let sd_sclk = io.pins.gpio14;

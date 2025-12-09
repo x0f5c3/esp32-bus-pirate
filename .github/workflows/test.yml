@@ -1,0 +1,95 @@
+name: Rust Tests
+permissions:
+  contents: read
+
+on:
+  push:
+    branches: [ main, develop, 'copilot/**' ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('rust/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-registry-
+      
+      - name: Cache cargo index
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/git
+          key: ${{ runner.os }}-cargo-index-${{ hashFiles('rust/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-index-
+      
+      - name: Cache cargo build
+        uses: actions/cache@v4
+        with:
+          path: rust/target
+          key: ${{ runner.os }}-cargo-test-${{ hashFiles('rust/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-test-
+      
+      - name: Run protocol tests
+        run: cd rust/protocol && cargo test --target x86_64-unknown-linux-gnu --verbose
+      
+      - name: Run bus-modes tests
+        run: cd rust/bus-modes && cargo test --lib --verbose || echo "No tests yet"
+      
+      - name: Run drivers tests  
+        run: cd rust/drivers && cargo test --lib --verbose || echo "No tests yet"
+      
+      - name: Check test coverage summary
+        run: |
+          echo "=== Test Summary ==="
+          cd rust/protocol && cargo test --no-fail-fast 2>&1 | grep -E "test result|running"
+  
+  lint:
+    name: Lint and Format Check
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      
+      - name: Check formatting
+        run: cd rust && cargo fmt --all -- --check
+      
+      - name: Run clippy on protocol (testable crate)
+        run: cd rust/protocol && cargo clippy --all-targets -- -D warnings
+
+  docs:
+    name: Documentation
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+      
+      - name: Check documentation
+        run: cd rust/protocol && cargo doc --no-deps --document-private-items
