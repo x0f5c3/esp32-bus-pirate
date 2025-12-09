@@ -1,0 +1,6 @@
+# Override ESP32 toolchain for this crate to enable testing
+# The protocol crate is no_std and hardware-independent, so integration tests
+# can run on the host with std available
+
+[build]
+target = "x86_64-unknown-linux-gnu"

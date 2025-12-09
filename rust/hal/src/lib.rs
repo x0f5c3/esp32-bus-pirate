@@ -14,13 +14,12 @@ pub use pins::*;
 
 // Re-export commonly used types
 pub use esp_hal::{
-    clock::ClockControl,
-    gpio::{GpioPin, Input, Output, PullDown, PullUp, PushPull},
-    i2c::I2C,
+    gpio::{Input, Level, Output, OutputConfig, Pull},
+    i2c::master::I2c,
     peripherals::Peripherals,
-    prelude::*,
-    spi::{master::Spi, FullDuplexMode, SpiMode},
-    timer::TimerGroup,
+    spi::master::{Config as SpiConfig, Spi},
+    time::Duration,
+    timer::timg::TimerGroup,
     uart::Uart,
-    Delay,
 };
+pub use fugit::ExtU64;

@@ -104,13 +104,38 @@ Main application:
 
 ### Testing
 
-Run unit tests:
+The project has comprehensive tests for hardware-independent code that run in CI.
+
+#### Quick Test Run
 
 ```bash
-cargo test --lib
+# Run all tests (uses helper script)
+./run-tests.sh
 ```
 
-Note: Hardware-dependent code cannot be tested on the host. Use `defmt-test` for on-device testing.
+#### Manual Testing
+
+```bash
+# Test protocol crate (message encoding/decoding)
+cd protocol
+cargo test --target x86_64-unknown-linux-gnu
+
+# Test other crates when available
+cd bus-modes
+cargo test --lib --target x86_64-unknown-linux-gnu
+```
+
+**Important**: Tests must specify `--target x86_64-unknown-linux-gnu` to run on the host instead of the ESP32 target.
+
+For comprehensive testing documentation, see [TESTING.md](TESTING.md).
+
+**Test Coverage**:
+- ✅ Protocol: Message encoding, CRC validation, frame parsing
+- 🚧 Bus-modes: State machines (planned)
+- 🚧 Drivers: Mock interfaces (planned)  
+- ⚠️ HAL/Firmware: Hardware-dependent (requires device)
+
+Note: Hardware-dependent code cannot be tested in CI. Use `defmt-test` for on-device testing.
 
 ### Code Quality
 
