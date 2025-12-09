@@ -51,10 +51,12 @@ pub mod audio {
 }
 
 /// SD card pin assignments
-/// Note: Likely shares SPI with display - need to verify
+/// Note: Shares SPI3 bus (different from display SPI2)
 pub mod sdcard {
-    pub const CS: u8 = 0; // TBD
-    // MOSI, MISO, SCLK likely shared with display SPI
+    pub const MISO: u8 = 16;  // SD_D0
+    pub const MOSI: u8 = 17;  // SD_CMD
+    pub const SCLK: u8 = 14;  // SD_SCK
+    pub const CS: u8 = 21;    // SD_D3
 }
 
 /// USB native peripheral

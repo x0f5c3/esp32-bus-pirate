@@ -9,11 +9,24 @@ license.workspace = true
 esp-hal.workspace = true
 embedded-hal.workspace = true
 embedded-hal-async = { workspace = true, optional = true }
+embedded-io.workspace = true
 heapless.workspace = true
 log.workspace = true
 bitflags.workspace = true
 fugit.workspace = true
 
+[dev-dependencies]
+esp-backtrace.workspace = true
+esp-println.workspace = true
+
 [features]
 default = []
 async = ["embedded-hal-async"]
+
+[[example]]
+name = "basic"
+required-features = []
+
+[[example]]
+name = "i2c_scan"
+required-features = []
