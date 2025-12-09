@@ -180,10 +180,10 @@ All pin mappings have been verified against hardware documentation.
 
 ## Dependencies
 
-- `esp-hal` 0.21.1 - ESP32-S3 hardware support
+- `esp-hal` (GitHub main) - ESP32-S3 hardware support with latest xtensa-lx-rt fixes
 - `embedded-hal` 1.0 - Standard embedded traits
 - `embedded-io` 0.6 - Standard I/O traits
-- `heapless` 0.8 - Static data structures
+- `heapless` 0.7 - Static data structures
 - `fugit` 0.3 - Time units
 - `bitflags` 2.6 - Bit flag operations
 - `log` 0.4 - Logging facade

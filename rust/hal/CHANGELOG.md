@@ -60,7 +60,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Technical Details
 - Target: `xtensa-esp32s3-none-elf`
 - Build mode: `no_std`
-- Dependencies: esp-hal 0.21, embedded-hal 1.0, embedded-io 0.6
+- Dependencies: esp-hal (GitHub main), embedded-hal 1.0, embedded-io 0.6, heapless 0.7
 - Clock speed: 240 MHz
 - All peripherals use standard embedded-hal traits for portability
 
