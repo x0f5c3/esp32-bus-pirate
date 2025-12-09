@@ -6,6 +6,8 @@
 //! This is the main firmware for the ESP32 Bus Pirate running on the
 //! Waveshare ESP32-S3-Touch-LCD-2.8 board.
 
+mod transport;
+
 use esp_backtrace as _;
 use esp_hal as _;
 use esp_println::println;
@@ -28,6 +30,7 @@ fn main() -> ! {
     
     // TODO: Initialize display
     // TODO: Initialize touch controller
+    // TODO: Initialize USB CDC transport (blocked on Task #1)
     // TODO: Set up protocol handler
     // TODO: Enter main application loop
     

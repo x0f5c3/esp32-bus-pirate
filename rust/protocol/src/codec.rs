@@ -3,7 +3,7 @@
 use crate::{message::Message, Error, END_BYTE, MAX_MESSAGE_SIZE, START_BYTE};
 use crc::{Crc, CRC_16_IBM_SDLC};
 use heapless::Vec;
-use postcard::{from_bytes, to_vec};
+use postcard::{from_bytes, to_slice};
 
 const CRC: Crc<u16> = Crc::<u16>::new(&CRC_16_IBM_SDLC);
 
@@ -22,10 +22,11 @@ impl MessageCodec {
     /// ```
     pub fn encode(msg: &Message) -> Result<Vec<u8, MAX_MESSAGE_SIZE>, Error> {
         // Serialize message with postcard
-        let payload: Vec<u8, MAX_MESSAGE_SIZE> =
-            to_vec(msg).map_err(|_| Error::EncodingFailed)?;
+        let mut payload_buf = [0u8; MAX_MESSAGE_SIZE];
+        let payload_slice = to_slice(msg, &mut payload_buf)
+            .map_err(|_| Error::EncodingFailed)?;
         
-        let len = payload.len() as u16;
+        let len = payload_slice.len() as u16;
         
         // Build frame
         let mut frame = Vec::new();
@@ -37,7 +38,7 @@ impl MessageCodec {
             .extend_from_slice(&len.to_le_bytes())
             .map_err(|_| Error::BufferFull)?;
         frame
-            .extend_from_slice(&payload)
+            .extend_from_slice(payload_slice)
             .map_err(|_| Error::BufferFull)?;
         
         // Calculate CRC over VERSION + LENGTH + PAYLOAD
