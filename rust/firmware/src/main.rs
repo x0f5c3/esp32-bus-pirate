@@ -7,18 +7,12 @@
 //! Waveshare ESP32-S3-Touch-LCD-2.8 board.
 
 use esp_backtrace as _;
-use esp_hal::{
-    clock::ClockControl,
-    entry,
-    peripherals::Peripherals,
-    prelude::*,
-    system::SystemControl,
-};
+use esp_hal as _;
 use esp_println::println;
 
 use esp32_bus_pirate_hal::WaveshareS3Board;
 
-#[entry]
+#[esp_hal::main]
 fn main() -> ! {
     println!("ESP32 Bus Pirate - Rust Edition");
     println!("================================");

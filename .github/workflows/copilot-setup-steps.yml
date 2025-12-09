@@ -41,6 +41,7 @@ jobs:
           ldproxy: true
           version: "latest"
           targets: esp32s3
+          extended_llvm: true
 
       - name: Validate Xtensa toolchain
         run: xtensa-esp32s3-elf-gcc --version

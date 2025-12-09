@@ -10,11 +10,11 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/x0f5c3/esp32-bus-pirate"
 
 [workspace.dependencies]
-# ESP32-S3 HAL
-esp-hal = { version = "0.21", features = ["esp32s3"] }
-esp-backtrace = { version = "0.14", features = ["esp32s3", "exception-handler", "panic-handler", "println"] }
-esp-println = { version = "0.12", features = ["esp32s3", "log"] }
-esp-alloc = { version = "0.5" }
+# ESP32-S3 HAL - using GitHub to get latest xtensa-lx-rt fixes
+esp-hal = { git = "https://github.com/esp-rs/esp-hal.git", features = ["esp32s3", "unstable"] }
+esp-backtrace = { git = "https://github.com/esp-rs/esp-hal.git", features = ["esp32s3", "panic-handler", "println"] }
+esp-println = { git = "https://github.com/esp-rs/esp-hal.git", features = ["esp32s3"] }
+esp-alloc = { git = "https://github.com/esp-rs/esp-hal.git" }
 
 # Embedded HAL traits
 embedded-hal = "1.0"
@@ -29,7 +29,7 @@ display-interface = "0.5"
 display-interface-spi = "0.5"
 
 # Data structures (no_std)
-heapless = "0.8"
+heapless = "0.7"
 static_cell = "2.1"
 
 # Serialization

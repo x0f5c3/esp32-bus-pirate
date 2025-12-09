@@ -21,7 +21,7 @@ pub const END_BYTE: u8 = 0x55;
 pub const MAX_MESSAGE_SIZE: usize = 1024;
 
 /// Error types for protocol operations
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Error {
     /// Frame too short to be valid
     FrameTooShort,
@@ -35,6 +35,8 @@ pub enum Error {
     EncodingFailed,
     /// Decoding failed
     DecodingFailed,
-    /// Buffer too small
+    /// Buffer full
     BufferFull,
 }
+
+
