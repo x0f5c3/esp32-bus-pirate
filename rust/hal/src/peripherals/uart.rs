@@ -14,9 +14,10 @@
 //!     .with_stop_bits(StopBits::One);
 //! ```
 
-use esp_hal::uart::{Uart, UartTx, UartRx, DataBits as EspDataBits, Parity as EspParity, StopBits as EspStopBits, Config as EspUartConfig};
-use esp_hal::peripherals::{UART0, UART1};
-use embedded_hal::serial::{Error as SerialError, ErrorKind, ErrorType};
+use esp_hal::{
+    Blocking,
+    uart::{Uart, UartTx, UartRx, DataBits as EspDataBits, Parity as EspParity, StopBits as EspStopBits, Config as EspUartConfig},
+};
 use embedded_io::{Read, Write, ErrorType as IoErrorType};
 
 /// UART parity configuration
@@ -33,9 +34,9 @@ pub enum Parity {
 impl From<Parity> for EspParity {
     fn from(parity: Parity) -> Self {
         match parity {
-            Parity::None => EspParity::ParityNone,
-            Parity::Even => EspParity::ParityEven,
-            Parity::Odd => EspParity::ParityOdd,
+            Parity::None => EspParity::None,
+            Parity::Even => EspParity::Even,
+            Parity::Odd => EspParity::Odd,
         }
     }
 }
@@ -52,8 +53,8 @@ pub enum StopBits {
 impl From<StopBits> for EspStopBits {
     fn from(stop_bits: StopBits) -> Self {
         match stop_bits {
-            StopBits::One => EspStopBits::STOP1,
-            StopBits::Two => EspStopBits::STOP2,
+            StopBits::One => EspStopBits::_1,
+            StopBits::Two => EspStopBits::_2,
         }
     }
 }
@@ -74,10 +75,10 @@ pub enum DataBits {
 impl From<DataBits> for EspDataBits {
     fn from(data_bits: DataBits) -> Self {
         match data_bits {
-            DataBits::Five => EspDataBits::DataBits5,
-            DataBits::Six => EspDataBits::DataBits6,
-            DataBits::Seven => EspDataBits::DataBits7,
-            DataBits::Eight => EspDataBits::DataBits8,
+            DataBits::Five => EspDataBits::_5,
+            DataBits::Six => EspDataBits::_6,
+            DataBits::Seven => EspDataBits::_7,
+            DataBits::Eight => EspDataBits::_8,
         }
     }
 }
@@ -143,13 +144,11 @@ impl UartConfig {
 
     /// Convert to esp-hal UART config
     pub fn to_esp_config(&self) -> EspUartConfig {
-        EspUartConfig {
-            baudrate: self.baudrate,
-            data_bits: self.data_bits.into(),
-            parity: self.parity.into(),
-            stop_bits: self.stop_bits.into(),
-            ..Default::default()
-        }
+        EspUartConfig::default()
+            .with_baudrate(self.baudrate)
+            .with_data_bits(self.data_bits.into())
+            .with_parity(self.parity.into())
+            .with_stop_bits(self.stop_bits.into())
     }
 }
 
@@ -170,19 +169,6 @@ pub enum UartErrorWrapper {
     Other,
 }
 
-impl SerialError for UartErrorWrapper {
-    fn kind(&self) -> ErrorKind {
-        match self {
-            UartErrorWrapper::Overrun => ErrorKind::Other,
-            UartErrorWrapper::Parity => ErrorKind::Parity,
-            UartErrorWrapper::FrameFormat => ErrorKind::FrameFormat,
-            UartErrorWrapper::Noise => ErrorKind::Noise,
-            UartErrorWrapper::BufferFull => ErrorKind::Other,
-            UartErrorWrapper::Other => ErrorKind::Other,
-        }
-    }
-}
-
 impl embedded_io::Error for UartErrorWrapper {
     fn kind(&self) -> embedded_io::ErrorKind {
         embedded_io::ErrorKind::Other
@@ -193,7 +179,7 @@ impl embedded_io::Error for UartErrorWrapper {
 ///
 /// This wrapper provides a safe interface to the ESP32-S3 UART0 peripheral.
 pub struct UartBus0<'d> {
-    uart: Uart<'d, UART0>,
+    uart: Uart<'d, Blocking>,
     config: UartConfig,
 }
 
@@ -204,7 +190,7 @@ impl<'d> UartBus0<'d> {
     ///
     /// * `uart` - The ESP-HAL UART peripheral
     /// * `config` - Configuration for the UART
-    pub fn new(uart: Uart<'d, UART0>, config: UartConfig) -> Self {
+    pub fn new(uart: Uart<'d, Blocking>, config: UartConfig) -> Self {
         Self { uart, config }
     }
 
@@ -214,34 +200,29 @@ impl<'d> UartBus0<'d> {
     }
 
     /// Split the UART into transmit and receive halves
-    pub fn split(self) -> (UartTx<'d, UART0>, UartRx<'d, UART0>) {
-        self.uart.split()
+    pub fn split(self) -> (UartTx<'d, Blocking>, UartRx<'d, Blocking>) {
+        let (rx, tx) = self.uart.split();
+        (tx, rx)
     }
 
     /// Write a byte to the UART (blocking)
     pub fn write_byte(&mut self, byte: u8) -> Result<(), UartErrorWrapper> {
-        self.uart
-            .write_byte(byte)
-            .map_err(|_| UartErrorWrapper::Other)
+        let buf = [byte];
+        self.uart.write(&buf).map_err(|_| UartErrorWrapper::Other)?;
+        Ok(())
     }
 
     /// Read a byte from the UART (blocking)
     pub fn read_byte(&mut self) -> Result<u8, UartErrorWrapper> {
-        self.uart
-            .read_byte()
-            .map_err(|_| UartErrorWrapper::Other)
+        let mut buf = [0u8; 1];
+        self.uart.read(&mut buf).map_err(|_| UartErrorWrapper::Other)?;
+        Ok(buf[0])
     }
 
     /// Flush the UART transmit buffer
     pub fn flush_tx(&mut self) -> Result<(), UartErrorWrapper> {
-        self.uart
-            .flush_tx()
-            .map_err(|_| UartErrorWrapper::Other)
+        self.uart.flush().map_err(|_| UartErrorWrapper::Other)
     }
-}
-
-impl<'d> ErrorType for UartBus0<'d> {
-    type Error = UartErrorWrapper;
 }
 
 impl<'d> IoErrorType for UartBus0<'d> {
@@ -250,9 +231,7 @@ impl<'d> IoErrorType for UartBus0<'d> {
 
 impl<'d> Write for UartBus0<'d> {
     fn write(&mut self, buf: &[u8]) -> Result<usize, Self::Error> {
-        self.uart
-            .write_bytes(buf)
-            .map_err(|_| UartErrorWrapper::Other)?;
+        self.uart.write(buf).map_err(|_| UartErrorWrapper::Other)?;
         Ok(buf.len())
     }
 
@@ -263,21 +242,7 @@ impl<'d> Write for UartBus0<'d> {
 
 impl<'d> Read for UartBus0<'d> {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, Self::Error> {
-        let mut count = 0;
-        for byte in buf.iter_mut() {
-            match self.uart.read_byte() {
-                Ok(b) => {
-                    *byte = b;
-                    count += 1;
-                }
-                Err(_) => break,
-            }
-        }
-        if count > 0 {
-            Ok(count)
-        } else {
-            Err(UartErrorWrapper::Other)
-        }
+        self.uart.read(buf).map_err(|_| UartErrorWrapper::Other)
     }
 }
 
@@ -285,7 +250,7 @@ impl<'d> Read for UartBus0<'d> {
 ///
 /// This wrapper provides a safe interface to the ESP32-S3 UART1 peripheral.
 pub struct UartBus1<'d> {
-    uart: Uart<'d, UART1>,
+    uart: Uart<'d, Blocking>,
     config: UartConfig,
 }
 
@@ -296,7 +261,7 @@ impl<'d> UartBus1<'d> {
     ///
     /// * `uart` - The ESP-HAL UART peripheral
     /// * `config` - Configuration for the UART
-    pub fn new(uart: Uart<'d, UART1>, config: UartConfig) -> Self {
+    pub fn new(uart: Uart<'d, Blocking>, config: UartConfig) -> Self {
         Self { uart, config }
     }
 
@@ -306,34 +271,29 @@ impl<'d> UartBus1<'d> {
     }
 
     /// Split the UART into transmit and receive halves
-    pub fn split(self) -> (UartTx<'d, UART1>, UartRx<'d, UART1>) {
-        self.uart.split()
+    pub fn split(self) -> (UartTx<'d, Blocking>, UartRx<'d, Blocking>) {
+        let (rx, tx) = self.uart.split();
+        (tx, rx)
     }
 
     /// Write a byte to the UART (blocking)
     pub fn write_byte(&mut self, byte: u8) -> Result<(), UartErrorWrapper> {
-        self.uart
-            .write_byte(byte)
-            .map_err(|_| UartErrorWrapper::Other)
+        let buf = [byte];
+        self.uart.write(&buf).map_err(|_| UartErrorWrapper::Other)?;
+        Ok(())
     }
 
     /// Read a byte from the UART (blocking)
     pub fn read_byte(&mut self) -> Result<u8, UartErrorWrapper> {
-        self.uart
-            .read_byte()
-            .map_err(|_| UartErrorWrapper::Other)
+        let mut buf = [0u8; 1];
+        self.uart.read(&mut buf).map_err(|_| UartErrorWrapper::Other)?;
+        Ok(buf[0])
     }
 
     /// Flush the UART transmit buffer
     pub fn flush_tx(&mut self) -> Result<(), UartErrorWrapper> {
-        self.uart
-            .flush_tx()
-            .map_err(|_| UartErrorWrapper::Other)
+        self.uart.flush().map_err(|_| UartErrorWrapper::Other)
     }
-}
-
-impl<'d> ErrorType for UartBus1<'d> {
-    type Error = UartErrorWrapper;
 }
 
 impl<'d> IoErrorType for UartBus1<'d> {
@@ -342,9 +302,7 @@ impl<'d> IoErrorType for UartBus1<'d> {
 
 impl<'d> Write for UartBus1<'d> {
     fn write(&mut self, buf: &[u8]) -> Result<usize, Self::Error> {
-        self.uart
-            .write_bytes(buf)
-            .map_err(|_| UartErrorWrapper::Other)?;
+        self.uart.write(buf).map_err(|_| UartErrorWrapper::Other)?;
         Ok(buf.len())
     }
 
@@ -355,21 +313,7 @@ impl<'d> Write for UartBus1<'d> {
 
 impl<'d> Read for UartBus1<'d> {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, Self::Error> {
-        let mut count = 0;
-        for byte in buf.iter_mut() {
-            match self.uart.read_byte() {
-                Ok(b) => {
-                    *byte = b;
-                    count += 1;
-                }
-                Err(_) => break,
-            }
-        }
-        if count > 0 {
-            Ok(count)
-        } else {
-            Err(UartErrorWrapper::Other)
-        }
+        self.uart.read(buf).map_err(|_| UartErrorWrapper::Other)
     }
 }
 

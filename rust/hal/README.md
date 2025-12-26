@@ -13,6 +13,7 @@ This crate provides safe, `no_std` abstractions over the ESP32-S3 peripherals, i
 - **UART**: Configurable UART0 and UART1 with all standard baud rates
 - **GPIO**: PWM support for backlight, interrupt configuration for touch
 - **Board**: Complete board initialization with all peripherals configured
+- **USB**: Native OTG FS wrapper exposing GPIO20 (D+) / GPIO19 (D-) for CDC/transport bring-up
 
 ## Hardware Pin Mappings
 

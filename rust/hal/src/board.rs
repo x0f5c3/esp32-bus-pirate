@@ -26,19 +26,13 @@
 
 use esp_hal::{
     delay::Delay,
-    gpio::{Level, Output, OutputConfig},
-    i2c::master::{Config as I2cConfig, I2c},
-    peripherals::Peripherals,
-    spi::master::{Config as SpiConfig, Spi},
+    gpio::{Input, Level, Output, OutputConfig, Pull},
+    i2c::master::{Config as EspI2cConfig, I2c},
+    otg_fs::Usb,
+    spi::master::{Config as EspSpiConfig, Spi},
     Blocking,
 };
 use esp_hal::time::Rate;
-
-use crate::peripherals::{
-    i2c::{I2cBus, I2cConfig},
-    spi::{SpiBus2, SpiBus3, SpiConfig},
-};
-use crate::pins;
 
 /// Main board structure with initialized peripherals
 ///
@@ -64,8 +58,11 @@ pub struct WaveshareS3Board {
     pub touch_rst: Output<'static>,    // Reset (active low)
     
     /// SPI3 bus for SD card
-    pub sdcard_spi: Spi<'static, esp_hal::peripherals::SPI3, FullDuplexMode>,
+    pub sdcard_spi: Spi<'static, Blocking>,
     pub sdcard_cs: Output<'static>,    // SD card chip select
+
+    /// USB OTG peripheral
+    pub usb: Usb<'static>,
     
     // Timer group for general timing operations
     // pub timer_group: TimerGroup<'static, esp_hal::peripherals::TIMG0>,
@@ -92,55 +89,52 @@ impl WaveshareS3Board {
     /// let board = WaveshareS3Board::new();
     /// ```
     pub fn new() -> Self {
-        // Initialize with default configuration
         let peripherals = esp_hal::init(esp_hal::Config::default());
-        
-        // Create delay provider
+
         let delay = Delay::new();
-        
+
         // ===== Display SPI Setup =====
-        let sclk = peripherals.GPIO40;
-        let mosi = peripherals.GPIO45;
-        let miso = peripherals.GPIO48; // Not used for display, but SPI needs it
         let display_cs = Output::new(peripherals.GPIO42, Level::High, OutputConfig::default());
-        
-        let spi_config = SpiConfig::default().with_frequency(Rate::from_mhz(40));
-        let display_spi = Spi::new(peripherals.SPI2, spi_config)
+        let display_cfg = EspSpiConfig::default()
+            .with_frequency(Rate::from_mhz(40))
+            .with_mode(esp_hal::spi::Mode::_0);
+        let display_spi = Spi::new(peripherals.SPI2, display_cfg)
             .expect("SPI initialization failed")
-            .with_sck(sclk)
-            .with_mosi(mosi)
-            .with_miso(miso);
-        
-        // Display control pins
+            .with_sck(peripherals.GPIO40)
+            .with_mosi(peripherals.GPIO45)
+            .with_miso(peripherals.GPIO48);
+
         let display_dc = Output::new(peripherals.GPIO41, Level::Low, OutputConfig::default());
         let display_rst = Output::new(peripherals.GPIO39, Level::High, OutputConfig::default());
         let display_bl = Output::new(peripherals.GPIO5, Level::High, OutputConfig::default()); // Backlight on
-        
+
         // ===== I2C Setup for Touch/IMU/RTC =====
-        let sda = peripherals.GPIO1;
-        let scl = peripherals.GPIO3;
-        
-        let i2c_config = I2cConfig::default().with_frequency(Rate::from_khz(100));
+        let i2c_config = EspI2cConfig::default().with_frequency(Rate::from_khz(100));
         let i2c0 = I2c::new(peripherals.I2C0, i2c_config)
             .expect("I2C initialization failed")
-            .with_sda(sda)
-            .with_scl(scl);
-        
-        // Touch controller pins
-        let touch_int = Output::new(peripherals.GPIO4, Level::High, OutputConfig::default());
+            .with_sda(peripherals.GPIO1)
+            .with_scl(peripherals.GPIO3);
+
+        let touch_int = Input::new(
+            peripherals.GPIO4,
+            esp_hal::gpio::InputConfig::default().with_pull(Pull::Up),
+        );
         let touch_rst = Output::new(peripherals.GPIO2, Level::High, OutputConfig::default());
-        
+
         // ===== SD Card SPI3 Setup @ 20MHz =====
-        let sd_sclk = io.pins.gpio14;
-        let sd_mosi = io.pins.gpio17;
-        let sd_miso = io.pins.gpio16;
-        let sdcard_cs = Output::new(io.pins.gpio21, Level::High);
-        
-        let sdcard_spi = Spi::new(peripherals.SPI3, 20.MHz(), SpiMode::Mode0, &clocks)
-            .with_sck(sd_sclk)
-            .with_mosi(sd_mosi)
-            .with_miso(sd_miso);
-        
+        let sd_cfg = EspSpiConfig::default()
+            .with_frequency(Rate::from_mhz(20))
+            .with_mode(esp_hal::spi::Mode::_0);
+        let sdcard_spi = Spi::new(peripherals.SPI3, sd_cfg)
+            .expect("SPI3 initialization failed")
+            .with_sck(peripherals.GPIO14)
+            .with_mosi(peripherals.GPIO17)
+            .with_miso(peripherals.GPIO16);
+        let sdcard_cs = Output::new(peripherals.GPIO21, Level::High, OutputConfig::default());
+
+        // ===== USB OTG =====
+        let usb = Usb::new(peripherals.USB0, peripherals.GPIO20, peripherals.GPIO19);
+
         Self {
             delay,
             display_spi,
@@ -153,6 +147,7 @@ impl WaveshareS3Board {
             touch_rst,
             sdcard_spi,
             sdcard_cs,
+            usb,
         }
     }
     
@@ -203,7 +198,7 @@ impl WaveshareS3Board {
     
     /// Check if touch interrupt is active (low = active)
     pub fn touch_interrupt_active(&self) -> bool {
-        embedded_hal::digital::InputPin::is_low(&self.touch_int).unwrap_or(false)
+        self.touch_int.is_low()
     }
 }
 
