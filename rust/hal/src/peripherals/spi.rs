@@ -176,9 +176,17 @@ impl<'d> SpiBus for SpiBus2<'d> {
     }
 
     fn transfer(&mut self, read: &mut [u8], write: &[u8]) -> Result<(), Self::Error> {
-        let len = read.len().min(write.len());
-        read[..len].copy_from_slice(&write[..len]);
-        self.spi.transfer(read).map_err(|_| SpiErrorWrapper::Other)
+        // Perform byte-wise full-duplex transfers without altering the caller's
+        // buffers before the operation. This favors safety; callers that need
+        // higher throughput should use `transfer_in_place` directly.
+        for (dst, &byte) in read.iter_mut().zip(write.iter()) {
+            let mut word = [byte];
+            self.spi
+                .transfer_in_place(&mut word)
+                .map_err(|_| SpiErrorWrapper::Other)?;
+            *dst = word[0];
+        }
+        Ok(())
     }
 
     fn transfer_in_place(&mut self, words: &mut [u8]) -> Result<(), Self::Error> {
@@ -248,9 +256,17 @@ impl<'d> SpiBus for SpiBus3<'d> {
     }
 
     fn transfer(&mut self, read: &mut [u8], write: &[u8]) -> Result<(), Self::Error> {
-        let len = read.len().min(write.len());
-        read[..len].copy_from_slice(&write[..len]);
-        self.spi.transfer(read).map_err(|_| SpiErrorWrapper::Other)
+        // Byte-wise transfer to avoid mutating caller-provided buffers ahead of
+        // the transaction; callers needing higher throughput can use the
+        // underlying `Spi` APIs directly.
+        for (dst, &byte) in read.iter_mut().zip(write.iter()) {
+            let mut word = [byte];
+            self.spi
+                .transfer_in_place(&mut word)
+                .map_err(|_| SpiErrorWrapper::Other)?;
+            *dst = word[0];
+        }
+        Ok(())
     }
 
     fn transfer_in_place(&mut self, words: &mut [u8]) -> Result<(), Self::Error> {

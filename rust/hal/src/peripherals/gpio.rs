@@ -16,7 +16,8 @@
 //! ```
 
 use esp_hal::gpio::{Input, InputConfig, Output, OutputConfig, Pull};
-use core::marker::PhantomData;
+use esp_hal::ledc::{channel, LowSpeed};
+use esp_hal::ledc::channel::ChannelIFace;
 
 /// PWM configuration
 #[derive(Debug, Clone, Copy)]
@@ -63,8 +64,8 @@ impl PwmConfig {
 /// This wrapper provides a simple interface for PWM control,
 /// primarily used for backlight brightness control.
 pub struct PwmChannel<'d> {
+    channel: channel::Channel<'d, LowSpeed>,
     config: PwmConfig,
-    _marker: PhantomData<&'d ()>,
 }
 
 impl<'d> PwmChannel<'d> {
@@ -76,16 +77,12 @@ impl<'d> PwmChannel<'d> {
     /// * `timer` - The LEDC timer to use for this channel
     /// * `pin` - The GPIO pin to use for PWM output
     /// * `config` - PWM configuration
-    pub fn new<P: esp_hal::gpio::OutputPin>(
-        _ledc: &'d mut (),
-        _timer: &'d (),
-        _pin: P,
+    pub fn new(
+        channel: channel::Channel<'d, LowSpeed>,
         config: PwmConfig,
     ) -> Self {
-        Self {
-            config,
-            _marker: PhantomData,
-        }
+        let _ = channel.set_duty(config.duty_percent);
+        Self { channel, config }
     }
 
     /// Set the duty cycle percentage (0-100)
@@ -94,6 +91,7 @@ impl<'d> PwmChannel<'d> {
     pub fn set_duty_percent(&mut self, percent: u8) {
         let percent = percent.min(100);
         self.config.duty_percent = percent;
+        let _ = self.channel.set_duty(percent);
     }
 
     /// Get the current duty cycle percentage

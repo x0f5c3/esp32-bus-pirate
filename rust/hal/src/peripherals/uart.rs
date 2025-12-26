@@ -145,6 +145,10 @@ impl UartConfig {
     /// Convert to esp-hal UART config
     pub fn to_esp_config(&self) -> EspUartConfig {
         EspUartConfig::default()
+            .with_baudrate(self.baudrate)
+            .with_data_bits(self.data_bits.into())
+            .with_parity(self.parity.into())
+            .with_stop_bits(self.stop_bits.into())
     }
 }
 
