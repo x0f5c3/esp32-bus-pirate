@@ -13,8 +13,7 @@
 //!     .with_frequency(HertzU32::kHz(100));
 //! ```
 
-use esp_hal::i2c::I2C;
-use esp_hal::peripherals::I2C0;
+use esp_hal::{Blocking, i2c::master::I2c as HalI2c};
 use embedded_hal::i2c::{Error as I2cError, ErrorKind, ErrorType, I2c, Operation, SevenBitAddress, TenBitAddress};
 
 /// I2C configuration
@@ -86,7 +85,7 @@ impl I2cError for I2cErrorWrapper {
 /// This wrapper provides a safe interface to the ESP32-S3 I2C peripheral
 /// and implements the `embedded-hal` I2C traits.
 pub struct I2cBus<'d> {
-    i2c: I2C<'d, I2C0>,
+    i2c: HalI2c<'d, Blocking>,
     config: I2cConfig,
 }
 
@@ -97,7 +96,7 @@ impl<'d> I2cBus<'d> {
     ///
     /// * `i2c` - The ESP-HAL I2C peripheral
     /// * `config` - Configuration for the I2C bus
-    pub fn new(i2c: I2C<'d, I2C0>, config: I2cConfig) -> Self {
+    pub fn new(i2c: HalI2c<'d, Blocking>, config: I2cConfig) -> Self {
         Self { i2c, config }
     }
 
@@ -107,7 +106,7 @@ impl<'d> I2cBus<'d> {
     }
 
     /// Get a mutable reference to the underlying I2C peripheral
-    pub fn inner_mut(&mut self) -> &mut I2C<'d, I2C0> {
+    pub fn inner_mut(&mut self) -> &mut HalI2c<'d, Blocking> {
         &mut self.i2c
     }
 }

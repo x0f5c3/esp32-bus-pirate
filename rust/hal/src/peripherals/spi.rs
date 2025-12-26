@@ -14,8 +14,7 @@
 //!     .with_mode(SpiMode::Mode0);
 //! ```
 
-use esp_hal::spi::{master::Spi, FullDuplexMode, SpiMode as EspSpiMode};
-use esp_hal::peripherals::{SPI2, SPI3};
+use esp_hal::{Blocking, spi::{master::Spi, Mode as EspSpiMode}};
 use embedded_hal::spi::{Error as SpiError, ErrorKind, ErrorType, SpiBus, SpiDevice};
 use core::marker::PhantomData;
 
@@ -35,10 +34,10 @@ pub enum SpiMode {
 impl From<SpiMode> for EspSpiMode {
     fn from(mode: SpiMode) -> Self {
         match mode {
-            SpiMode::Mode0 => EspSpiMode::Mode0,
-            SpiMode::Mode1 => EspSpiMode::Mode1,
-            SpiMode::Mode2 => EspSpiMode::Mode2,
-            SpiMode::Mode3 => EspSpiMode::Mode3,
+            SpiMode::Mode0 => EspSpiMode::_0,
+            SpiMode::Mode1 => EspSpiMode::_1,
+            SpiMode::Mode2 => EspSpiMode::_2,
+            SpiMode::Mode3 => EspSpiMode::_3,
         }
     }
 }
@@ -128,7 +127,7 @@ impl SpiError for SpiErrorWrapper {
 /// This wrapper provides a safe interface to the ESP32-S3 SPI2 peripheral
 /// and implements the `embedded-hal` SPI traits.
 pub struct SpiBus2<'d> {
-    spi: Spi<'d, SPI2, FullDuplexMode>,
+    spi: Spi<'d, Blocking>,
     config: SpiConfig,
 }
 
@@ -139,7 +138,7 @@ impl<'d> SpiBus2<'d> {
     ///
     /// * `spi` - The ESP-HAL SPI peripheral
     /// * `config` - Configuration for the SPI bus
-    pub fn new(spi: Spi<'d, SPI2, FullDuplexMode>, config: SpiConfig) -> Self {
+    pub fn new(spi: Spi<'d, Blocking>, config: SpiConfig) -> Self {
         Self { spi, config }
     }
 
@@ -149,12 +148,12 @@ impl<'d> SpiBus2<'d> {
     }
 
     /// Get a mutable reference to the underlying SPI peripheral
-    pub fn inner_mut(&mut self) -> &mut Spi<'d, SPI2, FullDuplexMode> {
+    pub fn inner_mut(&mut self) -> &mut Spi<'d, Blocking> {
         &mut self.spi
     }
 
     /// Get an immutable reference to the underlying SPI peripheral
-    pub fn inner(&self) -> &Spi<'d, SPI2, FullDuplexMode> {
+    pub fn inner(&self) -> &Spi<'d, Blocking> {
         &self.spi
     }
 }
@@ -177,9 +176,9 @@ impl<'d> SpiBus for SpiBus2<'d> {
     }
 
     fn transfer(&mut self, read: &mut [u8], write: &[u8]) -> Result<(), Self::Error> {
-        self.spi
-            .transfer(read, write)
-            .map_err(|_| SpiErrorWrapper::Other)
+        let len = read.len().min(write.len());
+        read[..len].copy_from_slice(&write[..len]);
+        self.spi.transfer(read).map_err(|_| SpiErrorWrapper::Other)
     }
 
     fn transfer_in_place(&mut self, words: &mut [u8]) -> Result<(), Self::Error> {
@@ -200,7 +199,7 @@ impl<'d> SpiBus for SpiBus2<'d> {
 /// This wrapper provides a safe interface to the ESP32-S3 SPI3 peripheral
 /// and implements the `embedded-hal` SPI traits.
 pub struct SpiBus3<'d> {
-    spi: Spi<'d, SPI3, FullDuplexMode>,
+    spi: Spi<'d, Blocking>,
     config: SpiConfig,
 }
 
@@ -211,7 +210,7 @@ impl<'d> SpiBus3<'d> {
     ///
     /// * `spi` - The ESP-HAL SPI peripheral
     /// * `config` - Configuration for the SPI bus
-    pub fn new(spi: Spi<'d, SPI3, FullDuplexMode>, config: SpiConfig) -> Self {
+    pub fn new(spi: Spi<'d, Blocking>, config: SpiConfig) -> Self {
         Self { spi, config }
     }
 
@@ -221,12 +220,12 @@ impl<'d> SpiBus3<'d> {
     }
 
     /// Get a mutable reference to the underlying SPI peripheral
-    pub fn inner_mut(&mut self) -> &mut Spi<'d, SPI3, FullDuplexMode> {
+    pub fn inner_mut(&mut self) -> &mut Spi<'d, Blocking> {
         &mut self.spi
     }
 
     /// Get an immutable reference to the underlying SPI peripheral
-    pub fn inner(&self) -> &Spi<'d, SPI3, FullDuplexMode> {
+    pub fn inner(&self) -> &Spi<'d, Blocking> {
         &self.spi
     }
 }
@@ -249,9 +248,9 @@ impl<'d> SpiBus for SpiBus3<'d> {
     }
 
     fn transfer(&mut self, read: &mut [u8], write: &[u8]) -> Result<(), Self::Error> {
-        self.spi
-            .transfer(read, write)
-            .map_err(|_| SpiErrorWrapper::Other)
+        let len = read.len().min(write.len());
+        read[..len].copy_from_slice(&write[..len]);
+        self.spi.transfer(read).map_err(|_| SpiErrorWrapper::Other)
     }
 
     fn transfer_in_place(&mut self, words: &mut [u8]) -> Result<(), Self::Error> {
@@ -360,9 +359,9 @@ mod tests {
 
     #[test]
     fn test_spi_mode_conversion() {
-        assert_eq!(EspSpiMode::from(SpiMode::Mode0), EspSpiMode::Mode0);
-        assert_eq!(EspSpiMode::from(SpiMode::Mode1), EspSpiMode::Mode1);
-        assert_eq!(EspSpiMode::from(SpiMode::Mode2), EspSpiMode::Mode2);
-        assert_eq!(EspSpiMode::from(SpiMode::Mode3), EspSpiMode::Mode3);
+        assert_eq!(EspSpiMode::from(SpiMode::Mode0), EspSpiMode::_0);
+        assert_eq!(EspSpiMode::from(SpiMode::Mode1), EspSpiMode::_1);
+        assert_eq!(EspSpiMode::from(SpiMode::Mode2), EspSpiMode::_2);
+        assert_eq!(EspSpiMode::from(SpiMode::Mode3), EspSpiMode::_3);
     }
 }

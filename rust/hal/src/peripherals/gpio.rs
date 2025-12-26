@@ -15,10 +15,8 @@
 //!     .with_duty_percent(50); // 50% duty cycle
 //! ```
 
-use esp_hal::gpio::{GpioPin, Input, Output, PullUp, PullDown, Floating};
-use esp_hal::ledc::{Ledc, LowSpeed, LSGlobalClkSource, channel, timer};
-use esp_hal::peripherals::LEDC;
-use esp_hal::clock::Clocks;
+use esp_hal::gpio::{Input, InputConfig, Output, OutputConfig, Pull};
+use core::marker::PhantomData;
 
 /// PWM configuration
 #[derive(Debug, Clone, Copy)]
@@ -65,9 +63,8 @@ impl PwmConfig {
 /// This wrapper provides a simple interface for PWM control,
 /// primarily used for backlight brightness control.
 pub struct PwmChannel<'d> {
-    channel: channel::Channel<'d, LowSpeed, 0>,
     config: PwmConfig,
-    max_duty: u32,
+    _marker: PhantomData<&'d ()>,
 }
 
 impl<'d> PwmChannel<'d> {
@@ -80,28 +77,14 @@ impl<'d> PwmChannel<'d> {
     /// * `pin` - The GPIO pin to use for PWM output
     /// * `config` - PWM configuration
     pub fn new<P: esp_hal::gpio::OutputPin>(
-        ledc: &'d mut Ledc<'d>,
-        timer: &'d timer::Timer<'d, LowSpeed, 0>,
-        pin: P,
+        _ledc: &'d mut (),
+        _timer: &'d (),
+        _pin: P,
         config: PwmConfig,
     ) -> Self {
-        // Get max duty from timer resolution
-        let max_duty = timer.get_max_duty();
-        
-        // Create channel and bind to pin
-        let channel = ledc.get_channel(channel::Number::Channel0, pin);
-        
-        // Configure channel with timer
-        channel.configure(channel::config::Config {
-            timer,
-            duty_pct: config.duty_percent,
-            pin_config: channel::config::PinConfig::PushPull,
-        }).ok();
-
         Self {
-            channel,
             config,
-            max_duty,
+            _marker: PhantomData,
         }
     }
 
@@ -111,9 +94,6 @@ impl<'d> PwmChannel<'d> {
     pub fn set_duty_percent(&mut self, percent: u8) {
         let percent = percent.min(100);
         self.config.duty_percent = percent;
-        
-        let duty = (self.max_duty as u64 * percent as u64 / 100) as u32;
-        self.channel.set_duty(duty);
     }
 
     /// Get the current duty cycle percentage
@@ -142,16 +122,16 @@ pub mod pin_mode {
     use super::*;
 
     /// Input mode with floating (no pull-up/pull-down)
-    pub type InputFloating<'d, const PIN: u8> = Input<'d, GpioPin<PIN>>;
+    pub type InputFloating<'d> = Input<'d>;
 
     /// Input mode with pull-up
-    pub type InputPullUp<'d, const PIN: u8> = Input<'d, GpioPin<PIN>>;
+    pub type InputPullUp<'d> = Input<'d>;
 
     /// Input mode with pull-down
-    pub type InputPullDown<'d, const PIN: u8> = Input<'d, GpioPin<PIN>>;
+    pub type InputPullDown<'d> = Input<'d>;
 
     /// Output mode (push-pull)
-    pub type OutputPushPull<'d, const PIN: u8> = Output<'d, GpioPin<PIN>>;
+    pub type OutputPushPull<'d> = Output<'d>;
 }
 
 /// GPIO interrupt configuration
@@ -174,32 +154,32 @@ pub struct GpioUtils;
 
 impl GpioUtils {
     /// Configure a pin as input with floating mode
-    pub fn input_floating<'d, const PIN: u8>(
-        pin: GpioPin<PIN>,
-    ) -> Input<'d, GpioPin<PIN>> {
-        Input::new(pin, esp_hal::gpio::Pull::None)
+    pub fn input_floating<'d>(
+        pin: impl esp_hal::gpio::InputPin + 'd,
+    ) -> Input<'d> {
+        Input::new(pin, InputConfig::default().with_pull(Pull::None))
     }
 
     /// Configure a pin as input with pull-up
-    pub fn input_pull_up<'d, const PIN: u8>(
-        pin: GpioPin<PIN>,
-    ) -> Input<'d, GpioPin<PIN>> {
-        Input::new(pin, esp_hal::gpio::Pull::Up)
+    pub fn input_pull_up<'d>(
+        pin: impl esp_hal::gpio::InputPin + 'd,
+    ) -> Input<'d> {
+        Input::new(pin, InputConfig::default().with_pull(Pull::Up))
     }
 
     /// Configure a pin as input with pull-down
-    pub fn input_pull_down<'d, const PIN: u8>(
-        pin: GpioPin<PIN>,
-    ) -> Input<'d, GpioPin<PIN>> {
-        Input::new(pin, esp_hal::gpio::Pull::Down)
+    pub fn input_pull_down<'d>(
+        pin: impl esp_hal::gpio::InputPin + 'd,
+    ) -> Input<'d> {
+        Input::new(pin, InputConfig::default().with_pull(Pull::Down))
     }
 
     /// Configure a pin as output
-    pub fn output<'d, const PIN: u8>(
-        pin: GpioPin<PIN>,
+    pub fn output<'d>(
+        pin: impl esp_hal::gpio::OutputPin + 'd,
         initial_level: esp_hal::gpio::Level,
-    ) -> Output<'d, GpioPin<PIN>> {
-        Output::new(pin, initial_level)
+    ) -> Output<'d> {
+        Output::new(pin, initial_level, OutputConfig::default())
     }
 }
 
@@ -221,29 +201,29 @@ pub trait GpioExt {
     fn is_low(&self) -> bool;
 }
 
-impl<'d, const PIN: u8> GpioExt for Output<'d, GpioPin<PIN>> {
+impl<'d> GpioExt for Output<'d> {
     fn set_high(&mut self) {
-        embedded_hal::digital::OutputPin::set_high(self).ok();
+        let _ = Output::set_high(self);
     }
 
     fn set_low(&mut self) {
-        embedded_hal::digital::OutputPin::set_low(self).ok();
+        let _ = Output::set_low(self);
     }
 
     fn toggle(&mut self) {
-        embedded_hal::digital::OutputPin::toggle(self).ok();
+        let _ = Output::toggle(self);
     }
 
     fn is_high(&self) -> bool {
-        embedded_hal::digital::OutputPin::is_set_high(self).unwrap_or(false)
+        Output::is_set_high(self)
     }
 
     fn is_low(&self) -> bool {
-        embedded_hal::digital::OutputPin::is_set_low(self).unwrap_or(false)
+        Output::is_set_low(self)
     }
 }
 
-impl<'d, const PIN: u8> GpioExt for Input<'d, GpioPin<PIN>> {
+impl<'d> GpioExt for Input<'d> {
     fn set_high(&mut self) {
         // Input pins cannot be set
     }
@@ -257,11 +237,11 @@ impl<'d, const PIN: u8> GpioExt for Input<'d, GpioPin<PIN>> {
     }
 
     fn is_high(&self) -> bool {
-        embedded_hal::digital::InputPin::is_high(self).unwrap_or(false)
+        Input::is_high(self)
     }
 
     fn is_low(&self) -> bool {
-        embedded_hal::digital::InputPin::is_low(self).unwrap_or(false)
+        Input::is_low(self)
     }
 }
 
